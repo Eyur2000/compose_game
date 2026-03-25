@@ -4,9 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +24,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.ui.theme.MyApplicationTheme
@@ -73,23 +82,85 @@ class MainActivity : ComponentActivity() {
 fun Main(isLoading: Boolean, post: List<InData>, modifier: Modifier = Modifier) {
     var hp by remember { mutableIntStateOf(3) }
     var currentIndex by remember { mutableIntStateOf(0) }
-    var did by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var score by remember { mutableIntStateOf(0) }
     var time by remember { mutableIntStateOf(10) }
-    LaunchedEffect(hp,currentIndex) {
-        if (hp > 0 && !isLoading && post.isNotEmpty()) {
+    if (hp > 0 || currentIndex < post.size) {
+        LaunchedEffect(currentIndex) {
+            time = 10
+        }
+    }
+    if (hp > 0 || currentIndex < post.size) {
+        LaunchedEffect(hp, currentIndex) {
             while (time > 0) {
                 delay(1000L)
                 time--
             }
+            // 時間到：扣血並自動跳下一題
             hp--
+            currentIndex++
         }
     }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        if (isLoading){
-            Text("Loading....")
-        }else if(hp<=0){
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(),contentAlignment = Alignment.Center){
+                Text("Loading....")
+            }
+        } else if (hp <= 0) {
+            Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text("game Over")
+                Button({
+                    hp=3
+                    score=0
+                    currentIndex=0
+                    time=10
+                }) {
+                    Text("Again")
+                }
+            }
+
+        } else {
+            val nowData = post[currentIndex]
+            val choose = remember(nowData) {
+                (nowData.incorrect_answers + nowData.correct_answer).shuffled()
+            }
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Text("題目${currentIndex + 1}:${nowData.question}")
+                    Spacer(Modifier.height(50.dp))
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(choose) { index ->
+                            Button({
+                                if (index == nowData.correct_answer) {
+                                    score += 10
+                                    currentIndex++
+                                } else {
+                                    hp--
+                                    currentIndex++
+                                }
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Text(index)
+
+                            }
+                            Spacer(Modifier.height(20.dp))
+                        }
+                    }
+                }
+            }
 
         }
+    }
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        Text("Score:$score")
+    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+        Text("Hp:$hp")
+    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
+        Text("time:$time")
     }
 }
 
